@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ScamShield</title>
+  <style>
+    /* ── Reset ── */
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    /* ── Design tokens ── */
+    :root {
+      --bg:        #0d0d14;
+      --surface:   #13131f;
+      --surface2:  #1a1a2e;
+      --border:    #2a2a45;
+      --text:      #e8e8f4;
+      --muted:     #6b6b90;
+      --accent:    #7c5cfc;
+      --low:       #22c55e;
+      --low-bg:    rgba(34,197,94,.12);
+      --low-br:    rgba(34,197,94,.3);
+      --mid:       #f59e0b;
+      --mid-bg:    rgba(245,158,11,.12);
+      --mid-br:    rgba(245,158,11,.3);
+      --high:      #ef4444;
+      --high-bg:   rgba(239,68,68,.12);
+      --high-br:   rgba(239,68,68,.3);
+    }
+
+    body {
+      width: 390px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 13px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 16px 11px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      width: 30px; height: 30px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .header-text { flex: 1; }
+    .header-title { font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+    .header-sub   { font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .scan-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .scan-btn:hover   { opacity: .85; }
+    .scan-btn:disabled{ opacity: .4; cursor: not-allowed; }
+
+    /* ── URL bar ── */
+    .urlbar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 16px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .url-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+    .url-dot.secure   { background: var(--low); }
+    .url-dot.insecure { background: var(--mid); }
+    .url-text {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── States ── */
+    #state-idle, #state-loading, #state-error, #state-results {
+      display: none;
+    }
+
+    /* IDLE */
+    #state-idle {
+      padding: 36px 16px;
+      text-align: center;
+    }
+    .idle-icon  { font-size: 40px; margin-bottom: 12px; }
+    .idle-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .idle-desc  { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+    /* LOADING */
+    #state-loading {
+      padding: 40px 16px;
+      text-align: center;
+    }
+    .spinner {
+      width: 38px; height: 38px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      margin: 0 auto 14px;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-title { font-size: 13px; color: var(--text); margin-bottom: 5px; }
+    .loading-step  { font-size: 11px; color: var(--muted); }
+
+    /* ERROR */
+    #state-error {
+      padding: 20px 16px;
+    }
+    .error-box {
+      background: var(--high-bg);
+      border: 1px solid var(--high-br);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .error-title { font-size: 13px; font-weight: 600; color: var(--high); margin-bottom: 5px; }
+    .error-msg   { font-size: 11px; color: #f87171; line-height: 1.5; }
+
+    /* RESULTS */
+    #state-results { display: none; flex-direction: column; }
+
+    /* Risk hero */
+    .risk-hero {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px;
+    }
+    .risk-badge {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      flex-shrink: 0;
+      border: 1.5px solid transparent;
+    }
+    .risk-badge.low    { background: var(--low-bg);  border-color: var(--low-br);  color: var(--low); }
+    .risk-badge.medium { background: var(--mid-bg);  border-color: var(--mid-br);  color: var(--mid); }
+    .risk-badge.high   { background: var(--high-bg); border-color: var(--high-br); color: var(--high); }
+    .badge-num   { font-size: 20px; font-weight: 700; line-height: 1; font-family: 'Courier New', monospace; }
+    .badge-label { font-size: 8px; font-weight: 700; letter-spacing: .1em; margin-top: 2px; }
+    .risk-info   { flex: 1; min-width: 0; }
+    .risk-verdict{ font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+    .risk-verdict.low    { color: var(--low); }
+    .risk-verdict.medium { color: var(--mid); }
+    .risk-verdict.high   { color: var(--high); }
+    .risk-url    { font-size: 10px; color: var(--muted); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Score bar */
+    .score-wrap { padding: 0 16px 14px; }
+    .score-track {
+      height: 7px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .score-fill {
+      height: 100%;
+      border-radius: 99px;
+      width: 0%;
+      transition: width .7s cubic-bezier(.4,0,.2,1);
+    }
+    .score-fill.low    { background: var(--low); }
+    .score-fill.medium { background: var(--mid); }
+    .score-fill.high   { background: linear-gradient(90deg, var(--mid), var(--high)); }
+    .score-ticks {
+      display: flex; justify-content: space-between;
+      margin-top: 5px;
+      font-size: 9px; color: var(--muted);
+      font-family: monospace;
+    }
+
+    /* Divider */
+    .divider { height: 1px; background: var(--border); margin: 0 16px; }
+
+    /* Section */
+    .section { padding: 12px 16px; }
+    .section-label {
+      font-size: 9px; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 8px;
+    }
+
+    /* Reasons */
+    .reasons { display: flex; flex-direction: column; gap: 5px; }
+    .reason {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: var(--surface2);
+      border-radius: 6px;
+      padding: 8px 10px;
+      border-left: 2px solid var(--border);
+    }
+    .reason.sev-high   { border-left-color: var(--high); }
+    .reason.sev-medium { border-left-color: var(--mid); }
+    .reason.sev-low    { border-left-color: var(--low); }
+    .reason-dot { font-size: 11px; flex-shrink: 0; margin-top: 1px; }
+    .reason-txt { font-size: 11px; line-height: 1.5; }
+
+    /* Explanation */
+    .explain-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+      line-height: 1.65;
+      color: #b0b0cc;
+    }
+
+    /* Recommendation */
+    .rec-box {
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+    .rec-box.low    { background: var(--low-bg);  color: var(--low);  border: 1px solid var(--low-br); }
+    .rec-box.medium { background: var(--mid-bg);  color: #fbbf24;     border: 1px solid var(--mid-br); }
+    .rec-box.high   { background: var(--high-bg); color: #f87171;     border: 1px solid var(--high-br); }
+
+    /* Footer */
+    .footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 9px; color: var(--muted);
+    }
+    .footer-status::before { content: '● '; }
+    .footer-status.ok  { color: var(--low); }
+    .footer-status.err { color: var(--high); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">🛡</div>
+    <div class="header-text">
+      <div class="header-title">SCAMSHIELD</div>
+      <div class="header-sub">AI-Powered Threat Detector</div>
+    </div>
+    <button class="scan-btn" id="scanBtn">Scan Page</button>
+  </div>
+
+  <!-- URL bar -->
+  <div class="urlbar">
+    <div class="url-dot" id="urlDot"></div>
+    <div class="url-text" id="urlText">Detecting current page…</div>
+  </div>
+
+  <!-- STATE: Idle -->
+  <div id="state-idle">
+    <div class="idle-icon">🔍</div>
+    <div class="idle-title">Ready to Scan</div>
+    <div class="idle-desc">
+      Click <strong>Scan Page</strong> to analyze this website<br>
+      for scams, phishing, and fraud in real time.
+    </div>
+  </div>
+
+  <!-- STATE: Loading -->
+  <div id="state-loading">
+    <div class="spinner"></div>
+    <div class="loading-title">Analyzing with AI…</div>
+    <div class="loading-step" id="loadingStep">Extracting page content</div>
+  </div>
+
+  <!-- STATE: Error -->
+  <div id="state-error">
+    <div class="error-box">
+      <div class="error-title">⚠ Analysis Failed</div>
+      <div class="error-msg" id="errorMsg">
+        Cannot connect to ScamShield API.<br>
+        Make sure the backend is running on port 3000.
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE: Results -->
+  <div id="state-results">
+
+    <!-- Risk hero -->
+    <div class="risk-hero">
+      <div class="risk-badge" id="riskBadge">
+        <div class="badge-num"  id="badgeNum">0</div>
+        <div class="badge-label" id="badgeLabel">LOW</div>
+      </div>
+      <div class="risk-info">
+        <div class="risk-verdict" id="riskVerdict">Safe Website</div>
+        <div class="risk-url"    id="riskUrl">—</div>
+      </div>
+    </div>
+
+    <!-- Score bar -->
+    <div class="score-wrap">
+      <div class="score-track">
+        <div class="score-fill" id="scoreFill"></div>
+      </div>
+      <div class="score-ticks">
+        <span>0 — SAFE</span>
+        <span>50 — CAUTION</span>
+        <span>100 — DANGER</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Reasons -->
+    <div class="section">
+      <div class="section-label">🚨 Detection Signals</div>
+      <div class="reasons" id="reasonsList"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Explanation -->
+    <div class="section">
+      <div class="section-label">🧠 AI Explanation</div>
+      <div class="explain-box" id="explainBox">—</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Recommendation -->
+    <div class="section">
+      <div class="section-label">✅ Recommendation</div>
+      <div class="rec-box" id="recBox">—</div>
+    </div>
+
+  </div><!-- /results -->
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>ScamShield v1.0</span>
+    <span class="footer-status" id="footerStatus">ready</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

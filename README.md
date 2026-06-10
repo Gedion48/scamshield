@@ -5,7 +5,7 @@
 ![ScamShield Demo](https://img.shields.io/badge/Status-Active-brightgreen) ![Version](https://img.shields.io/badge/Version-1.0.0-blue) ![License](https://img.shields.io/badge/License-MIT-purple) ![Node](https://img.shields.io/badge/Node.js-18%2B-green) ![Manifest](https://img.shields.io/badge/Manifest-V3-orange)
 
 ---
-
+<img width="1341" height="619" alt="image" src="https://github.com/user-attachments/assets/a05bcd9d-857c-4a70-8040-29e647b5dc70" />
 ## 📸 Preview
 
 The extension popup analyzes the current page and returns a risk score, detection signals, AI explanation, and a safety recommendation — all in under 3 seconds.
